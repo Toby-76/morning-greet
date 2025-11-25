@@ -2,12 +2,17 @@ import requests
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from notion_client import Client
 
 load_dotenv()
 
 # Configuration
 QWEATHER_API_KEY = os.getenv("QWEATHER_API_KEY")
 SHANGHAI_LOCATION = "101020200"
+
+# Load Notion configuration
+NOTION_API_KEY = os.getenv("NOTION_API_KEY")
+NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 
 
 # Check if we're running on GitHub Actions
@@ -120,28 +125,55 @@ def calculate_gold_price_per_gram():
     # Round to 2 decimal places
     return round(gold_cny_per_gram, 2)
 
-def create_morning_message():
-    """Combine all data into final message"""
+def create_morning_message(weather_data, advice_data, gold_price):
+    message =  f"""Hi, Toby!
+        今天是{get_date_from_forecast(weather_data)}
+        最高温度：{get_max_temp(weather_data)}°C
+        最低温度：{get_min_temp(weather_data)}°C
+        天气：{get_weather_condition(weather_data)}
+        运动指数：{get_sports_advice(advice_data)}
+        穿衣指数：{get_clothes_advice(advice_data)}
+        老爸今天：{get_dad_work_status()}
+        今日金价：{gold_price}元/克
+        """
+    return message
+
+def save_to_notion(weather_data, advice_data, gold_price):
+    """Save daily data to Notion database"""
+    notion = Client(auth=NOTION_API_KEY)
+
+    # Get the data
+    date = get_date_from_forecast(weather_data)
+    max_temp = get_max_temp(weather_data)
+    min_temp = get_min_temp(weather_data)
+    weather = get_weather_condition(weather_data)
+    clothes_advice = get_clothes_advice(advice_data)
+    sports_advice = get_sports_advice(advice_data)
+    dad_status = get_dad_work_status()
+
+    # Create page in Notion
+    notion.pages.create(
+        parent={"database_id": NOTION_DATABASE_ID},
+        properties={
+            "日期": {"title": [{"text": {"content": date}}]},
+            "金价": {"number": gold_price},
+            "最低温度": {"number": float(min_temp)},
+            "最高温度": {"number": float(max_temp)},
+            "天气状况": {"rich_text": [{"text": {"content": weather}}]},
+            "穿衣建议": {"rich_text": [{"text": {"content": None}}]},
+            "穿衣指数": {"rich_text": [{"text": {"content": clothes_advice}}]},
+            "运动指数": {"rich_text": [{"text": {"content": sports_advice}}]},
+            "工作状态": {"rich_text": [{"text": {"content": dad_status}}]},
+        }
+    )
+
+def main():
     # Get all the data
     weather_data = get_weather_forecast()
     advice_data = get_weather_advice()
-
-    # Format everything
-    message =  f"""Hi, Toby!
-今天是{get_date_from_forecast(weather_data)}
-最高温度：{get_max_temp(weather_data)}°C
-最低温度：{get_min_temp(weather_data)}°C
-天气：{get_weather_condition(weather_data)}
-运动指数：{get_sports_advice(advice_data)}
-穿衣指数：{get_clothes_advice(advice_data)}
-老爸今天：{get_dad_work_status()}
-今日金价：{calculate_gold_price_per_gram()}元/克
-"""
-    return message
-
-def main():
-    
-    print(create_morning_message())
+    gold_price = calculate_gold_price_per_gram()
+    save_to_notion(weather_data, advice_data, gold_price)
+    message = create_morning_message(weather_data, advice_data, glod_price)
     
 if __name__ == "__main__":
     main()
