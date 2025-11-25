@@ -160,10 +160,10 @@ def save_to_notion(weather_data, advice_data, gold_price):
             "最低温度": {"number": float(min_temp)},
             "最高温度": {"number": float(max_temp)},
             "天气状况": {"rich_text": [{"text": {"content": weather}}]},
-            "穿衣建议": {"rich_text": [{"text": {"content": None}}]},
+            "穿衣建议": {"rich_text": [{"text": {"content": ""}}]},
             "穿衣指数": {"rich_text": [{"text": {"content": clothes_advice}}]},
             "运动指数": {"rich_text": [{"text": {"content": sports_advice}}]},
-            "工作状态": {"rich_text": [{"text": {"content": dad_status}}]},
+            "工作状态": {"select": {"name": dad_status}}
         }
     )
 
@@ -173,7 +173,7 @@ def main():
     advice_data = get_weather_advice()
     gold_price = calculate_gold_price_per_gram()
     save_to_notion(weather_data, advice_data, gold_price)
-    message = create_morning_message(weather_data, advice_data, glod_price)
+    message = create_morning_message(weather_data, advice_data, gold_price)
     
 if __name__ == "__main__":
     main()

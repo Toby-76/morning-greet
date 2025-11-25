@@ -19,7 +19,7 @@ jobs:
  
     - name: Install dependencies
       run: |
-        pip install python-dotenv requests
+        pip install python-dotenv requests notion-client
 
     - name: Run morning greet
       env:
