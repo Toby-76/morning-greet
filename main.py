@@ -8,6 +8,7 @@ load_dotenv()
 
 # Configuration
 QWEATHER_API_KEY = os.getenv("QWEATHER_API_KEY")
+BARK_KEY = os.getenv("BARK_KEY")
 SHANGHAI_LOCATION = "101020200"
 
 # Load Notion configuration
@@ -127,14 +128,14 @@ def calculate_gold_price_per_gram():
 
 def create_morning_message(weather_data, advice_data, gold_price):
     message =  f"""Hi, Toby!
-        今天是{get_date_from_forecast(weather_data)}
-        最高温度：{get_max_temp(weather_data)}°C
-        最低温度：{get_min_temp(weather_data)}°C
-        天气：{get_weather_condition(weather_data)}
-        运动指数：{get_sports_advice(advice_data)}
-        穿衣指数：{get_clothes_advice(advice_data)}
-        老爸今天：{get_dad_work_status()}
-        今日金价：{gold_price}元/克
+今天是{get_date_from_forecast(weather_data)}
+最高温度：{get_max_temp(weather_data)}°C
+最低温度：{get_min_temp(weather_data)}°C
+天气：{get_weather_condition(weather_data)}
+运动指数：{get_sports_advice(advice_data)}
+穿衣指数：{get_clothes_advice(advice_data)}
+老爸今天：{get_dad_work_status()}
+今日金价：{gold_price}元/克
         """
     return message
 
@@ -167,13 +168,42 @@ def save_to_notion(weather_data, advice_data, gold_price):
         }
     )
 
+def send_bark_notification(message):
+    """Send morning message via Bark notification"""
+    url = f"https://api.day.app/{BARK_KEY}"
+
+    # Send the full message as the notification body
+    data = {
+        "title": "早安问候 🌅",
+        "body": message,
+        "sound": "multiway invitation",
+        "group": "Morning Greet"
+    }
+
+    try:
+        response = requests.post(url, json=data, timeout=10)
+        return response.json()
+    except Exception as e:
+        print(f"Bark notification failed: {e}")
+        return None
+
 def main():
     # Get all the data
     weather_data = get_weather_forecast()
     advice_data = get_weather_advice()
     gold_price = calculate_gold_price_per_gram()
-    save_to_notion(weather_data, advice_data, gold_price)
+    
+    # Generate your morning message
     message = create_morning_message(weather_data, advice_data, gold_price)
     
+     # Print to console (for GitHub Actions logs)
+    print(message)
+
+    # Save to Notion    
+    save_to_notion(weather_data, advice_data, gold_price)
+
+    # Send Bark notification
+    send_bark_notification(message)
+
 if __name__ == "__main__":
     main()

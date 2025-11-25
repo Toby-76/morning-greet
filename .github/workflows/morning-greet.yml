@@ -26,4 +26,5 @@ jobs:
         QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
         NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
         NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        BARK_KEY: ${{ secrets.BARK_KEY }}
       run: python main.py
