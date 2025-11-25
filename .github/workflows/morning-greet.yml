@@ -1,0 +1,27 @@
+name: Morning Greet Automation
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at 8 AM Beijing time (UTC 00:00)
+  workflow_dispatch:  # Allow manual runs
+
+jobs:
+  run-morning-greet:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+ 
+    - name: Install dependencies
+      run: |
+        pip install python-dotenv requests
+
+    - name: Run morning greet
+      env:
+        QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
+      run: python main.py
