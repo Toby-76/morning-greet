@@ -9,11 +9,18 @@ load_dotenv()
 QWEATHER_API_KEY = os.getenv("QWEATHER_API_KEY")
 SHANGHAI_LOCATION = "101020200"
 
-# proxy, use clash, port is 7890
-proxies = {
-    'http': 'http://127.0.0.1:7890',
-    'https': 'http://127.0.0.1:7890',
-}
+
+# Check if we're running on GitHub Actions
+IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
+
+# Proxy only needed for international APIs when running locally
+proxies_for_international = None
+if not IS_GITHUB_ACTIONS:
+    proxies_for_international = {
+        'http': 'http://127.0.0.1:7890',
+        'https': 'http://127.0.0.1:7890',
+    }
+
 # Different API endpoints
 INDICES_URL = "https://devapi.qweather.com/v7/indices/1d"
 WEATHER_URL = "https://devapi.qweather.com/v7/weather/3d"
@@ -84,7 +91,7 @@ def get_gold_price():
     url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-    response = requests.get(url, proxies=proxies, headers=headers, timeout=10)
+    response = requests.get(url, proxies=proxies_for_international, headers=headers, timeout=10)
     data = response.json()
 
     # Extract the current price
@@ -95,7 +102,7 @@ def get_usd_to_cny():
     url = "https://query1.finance.yahoo.com/v8/finance/chart/USDCNY=X"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-    response = requests.get(url, proxies=proxies, headers=headers, timeout=10)
+    response = requests.get(url, proxies=proxies_for_international, headers=headers, timeout=10)
     data = response.json()
 
     return data['chart']['result'][0]['meta']['regularMarketPrice']
