@@ -78,6 +78,48 @@ def get_sports_advice(data):
 def get_clothes_advice(data):
     return data['daily'][1]['text']
 
+# 从穿衣建议中精简上身服装
+def extract_clothes_summary(clothes_text):
+    """提取具体的上装建议"""
+    # 极冷
+    if "羽绒服" in clothes_text:
+        return "羽绒服"
+    if "棉服" in clothes_text or "冬大衣" in clothes_text:
+        return "棉服"
+    
+    # 冷
+    if "厚外套" in clothes_text:
+        return "厚外套"
+    if "呢外套" in clothes_text:
+        return "呢外套"
+    if "毛衣" in clothes_text and "薄" not in clothes_text:
+        return "毛衣"
+    
+    # 凉
+    if "薄外套" in clothes_text:
+        return "薄外套"
+    if "开衫" in clothes_text:
+        return "开衫"
+    if "夹克" in clothes_text:
+        return "夹克"
+    if "薄毛衣" in clothes_text:
+        return "薄毛衣"
+    
+    # 适中
+    if "长袖" in clothes_text:
+        return "长袖"
+    if "衬衫" in clothes_text:
+        return "衬衫"
+    
+    # 热
+    if "短衫" in clothes_text or "T恤" in clothes_text:
+        return "T恤"
+    if "短袖" in clothes_text or "短裙" in clothes_text or "短裤" in clothes_text:
+        return "短袖"
+    
+    return "长袖"
+
+# 获取老爸上班状态
 def get_dad_work_status():
     """Calculate if dad is working today"""
     start_date = datetime(2025, 1, 30)  # Start working date
@@ -92,6 +134,7 @@ def get_dad_work_status():
     else:
         return "休息"
 
+# 获取金价 单位：美元/盎司
 def get_gold_price():
     """Get gold price in USD per ounce"""
     url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F"
@@ -103,6 +146,7 @@ def get_gold_price():
     # Extract the current price
     return data['chart']['result'][0]['meta']['regularMarketPrice']
 
+# 获取汇率 人民币/美元
 def get_usd_to_cny():
     """Get USD to CNY exchange rate"""
     url = "https://query1.finance.yahoo.com/v8/finance/chart/USDCNY=X"
@@ -113,6 +157,7 @@ def get_usd_to_cny():
 
     return data['chart']['result'][0]['meta']['regularMarketPrice']
 
+# 计算金价 人民币/克
 def calculate_gold_price_per_gram():
     """Calculate gold price in RMB per gram"""
     gold_usd_per_ounce = get_gold_price()
@@ -126,6 +171,7 @@ def calculate_gold_price_per_gram():
     # Round to 2 decimal places
     return round(gold_cny_per_gram, 2)
 
+# 拼凑完整的消息信息
 def create_morning_message(weather_data, advice_data, gold_price):
     message =  f"""Hi, Toby!
 今天是{get_date_from_forecast(weather_data)}
@@ -139,6 +185,25 @@ def create_morning_message(weather_data, advice_data, gold_price):
         """
     return message
 
+# 创建精简版信息使得其在iOS通知栏里一目了然
+def create_compact_message(weather_data, advice_data, gold_price):
+    """创建精简的早安消息（用于 Bark 通知）"""
+    date = get_date_from_forecast(weather_data)
+    max_temp = get_max_temp(weather_data)
+    min_temp = get_min_temp(weather_data)
+    weather = get_weather_condition(weather_data)
+    dad_status = get_dad_work_status()
+    
+    # 提取穿衣建议
+    clothes_text = get_clothes_advice(advice_data)
+    clothes_summary = extract_clothes_summary(clothes_text)
+    
+    # 精简格式
+    compact = f"🌅 {date} {max_temp}°/{min_temp}° {weather} | 💰{gold_price}元 | 👔{clothes_summary} | 👴{dad_status}"
+    
+    return compact
+
+# 保存信息到notion
 def save_to_notion(weather_data, advice_data, gold_price):
     """Save daily data to Notion database"""
     notion = Client(auth=NOTION_API_KEY)
@@ -168,6 +233,7 @@ def save_to_notion(weather_data, advice_data, gold_price):
         }
     )
 
+# 通过bark app来发送给消息给iOS
 def send_bark_notification(message):
     """Send morning message via Bark notification"""
     url = f"https://api.day.app/{BARK_KEY}"
@@ -187,23 +253,24 @@ def send_bark_notification(message):
         print(f"Bark notification failed: {e}")
         return None
 
+
 def main():
-    # Get all the data
+    # 获取所有数据
     weather_data = get_weather_forecast()
     advice_data = get_weather_advice()
     gold_price = calculate_gold_price_per_gram()
     
-    # Generate your morning message
-    message = create_morning_message(weather_data, advice_data, gold_price)
+    # 创建完整消息（用于日志和可能的其他用途）
+    full_message = create_morning_message(weather_data, advice_data, gold_price)
+    print(full_message)
     
-     # Print to console (for GitHub Actions logs)
-    print(message)
-
-    # Save to Notion    
+    # 保存到 Notion
     save_to_notion(weather_data, advice_data, gold_price)
-
-    # Send Bark notification
-    send_bark_notification(message)
+    
+    # 创建精简消息并发送 Bark 通知
+    compact_message = create_compact_message(weather_data, advice_data, gold_price)
+    print(f"\n发送通知: {compact_message}")
+    send_bark_notification(compact_message)
 
 if __name__ == "__main__":
     main()
